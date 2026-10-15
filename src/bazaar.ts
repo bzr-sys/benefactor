@@ -2,7 +2,8 @@ import { BazaarApp, type BazaarOptions } from '@bzr/bazaar'
 
 const config: BazaarOptions = {
   appId: import.meta.env.VITE_APP_ID || 'test',
-  loginRedirectUri: window.location.origin,
+  // Must match a redirect URI registered for the app, with no trailing slash
+  loginRedirectUri: window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, ''),
   onApiConnectError: async function (bzr: BazaarApp, message: string) {
     console.log('OnConnectError', message)
     bzr.logOut()
