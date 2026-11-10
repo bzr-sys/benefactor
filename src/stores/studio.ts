@@ -7,8 +7,8 @@ import {
   type Sale,
   type User,
 } from '@bzr/bazaar'
-import { bzr } from '@/bazaar'
-import { ensureCreatorSetup, mine, PUBLIC_DIR } from '@/lib/data'
+import { bzr, bzrNotifications } from '@/bazaar'
+import { ensureCreatorSetup, mine, POST_IMAGES_DIR, PUBLIC_DIR } from '@/lib/data'
 import { ACTIVE_STATUSES, listPages, loadTiers, type Tier } from '@/lib/posts'
 import { ACCENTS } from '@/lib/format'
 import type { Page, Post } from '@/types'
@@ -60,12 +60,18 @@ export const useStudioStore = defineStore('studio', () => {
   }
 
   async function uploadCover(pageId: string, file: File) {
+    const previous = pages.value.find((p) => p.id === pageId)?.coverFileId
     const uploaded = await bzr.files.upload(file, { path: PUBLIC_DIR })
     await updatePage(pageId, { coverFileId: uploaded.id })
+    if (previous) await bzr.files.delete(previous)
   }
 
   async function uploadImage(file: File) {
-    const uploaded = await bzr.files.upload(file, { path: PUBLIC_DIR })
+    // Only the creator may read it until a post says who else may
+    const uploaded = await bzr.files.upload(file, {
+      path: POST_IMAGES_DIR,
+      metadata: { public: false, tiers: [] },
+    })
     return uploaded.id
   }
 
@@ -76,6 +82,8 @@ export const useStudioStore = defineStore('studio', () => {
       await bzr.monetization.products.delete(tier.id)
     }
     await mine.followers.deleteAll({ pageId })
+    const coverFileId = pages.value.find((p) => p.id === pageId)?.coverFileId
+    if (coverFileId) await bzr.files.delete(coverFileId)
     await mine.pages.deleteOne(pageId)
     pages.value = pages.value.filter((p) => p.id !== pageId)
   }
@@ -94,7 +102,13 @@ export const useStudioStore = defineStore('studio', () => {
     for (const post of posts) {
       if (post.minCostInCents != null && post.minCostInCents <= tier.costInCents) {
         const body = await mine.bodies.getOne(post.id)
-        if (body) await mine.bodies.updateOne(post.id, { tiers: [...body.tiers, tier.id] })
+        if (body) {
+          const tiers = [...body.tiers, tier.id]
+          await mine.bodies.updateOne(post.id, { tiers })
+          if (post.imageFileId) {
+            await bzr.files.updateMetadata(post.imageFileId, { public: body.public, tiers })
+          }
+        }
       }
     }
     return tier
@@ -125,14 +139,22 @@ export const useStudioStore = defineStore('studio', () => {
       if (existing) post.created = existing.created
       await mine.posts.replaceOne(id, post)
       await mine.bodies.replaceOne(id, body)
+      if (existing?.imageFileId && existing.imageFileId !== post.imageFileId) {
+        await bzr.files.delete(existing.imageFileId)
+      }
     } else {
       await mine.posts.insertOne(post)
       await mine.bodies.insertOne(body)
+    }
+    if (post.imageFileId) {
+      await bzr.files.updateMetadata(post.imageFileId, { public: body.public, tiers: body.tiers })
     }
     return post
   }
 
   async function deletePost(postId: string) {
+    const post = await mine.posts.getOne(postId)
+    if (post?.imageFileId) await bzr.files.delete(post.imageFileId)
     await Promise.all([
       mine.posts.deleteOne(postId),
       mine.bodies.deleteOne(postId),
@@ -159,7 +181,7 @@ export const useStudioStore = defineStore('studio', () => {
     const message = `${page.name} posted “${post.title}” on Benefactor`.slice(0, 250)
     const results = await Promise.allSettled(
       [...recipients].map((recipientId) =>
-        bzr.notifications.create({
+        bzrNotifications.create({
           recipientId,
           message,
           sendMessage: email ? SendNotification.ALWAYS : SendNotification.NEVER,

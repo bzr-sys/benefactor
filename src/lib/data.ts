@@ -10,8 +10,17 @@ export const LIKES = 'likes'
 export const FOLLOWERS = 'followers'
 export const FOLLOWING = 'following'
 
-/** Folder for files everyone may read (covers, post previews) */
+/** Folder for files everyone may read (covers) */
 export const PUBLIC_DIR = 'public'
+
+/** Folder for post images, which readers of the post may read */
+export const POST_IMAGES_DIR = 'posts'
+
+/** Who may read a file, as `post_bodies` says who may read a body */
+const fileGrants = [
+  { path: { $startsWith: `${PUBLIC_DIR}/` } },
+  { $or: [{ 'metadata.public': true }, { 'metadata.tiers': { $containsAny: '$purchases' } }] },
+]
 
 /** Who may do what in a creator's collections */
 const creatorPermissions: Record<string, Omit<NewPermission, 'collectionName'>[]> = {
@@ -82,13 +91,19 @@ export async function ensureCreatorSetup() {
     mine.followers.getAll({ id: '' }),
   ])
   const filePermissions = await bzr.permissions.list({ collectionName: '_files' })
-  if (!filePermissions.some((p) => p.granteeType === GranteeType.ANY)) {
-    await bzr.permissions.create({
-      collectionName: '_files',
-      granteeType: GranteeType.ANY,
-      types: [PermissionType.READ],
-      filter: { path: { $startsWith: `${PUBLIC_DIR}/` } },
-    })
+  for (const filter of fileGrants) {
+    const exists = filePermissions.some(
+      (p) =>
+        p.granteeType === GranteeType.ANY && JSON.stringify(p.filter) === JSON.stringify(filter),
+    )
+    if (!exists) {
+      await bzr.permissions.create({
+        collectionName: '_files',
+        granteeType: GranteeType.ANY,
+        types: [PermissionType.READ],
+        filter,
+      })
+    }
   }
 }
 

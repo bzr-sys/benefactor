@@ -9,7 +9,8 @@ Everything lives in each creator's own Bazaar DB. `src/lib/data.ts` sets the per
 - `pages`, `posts`: public. Locked posts show title and teaser.
 - `post_bodies`: public bodies, or bodies whose `tiers` contain one of the reader's purchased products (`$containsAny: "$purchases"`).
 - `comments`, `likes`, `followers`: anyone signed in adds or removes their own.
-- `_files` under `public/`: covers and post images.
+- `_files` under `public/`: covers, for everyone.
+- `_files` under `posts/`: post images, for whoever may read the post (`metadata.public`, or `metadata.tiers` with `$containsAny: "$purchases"`). Images of older posts stay under `public/`, readable by anyone with the file ID, until replaced.
 
 Tiers are Bazaar products with `group` = page ID. A post locked to a tier unlocks for that tier and every pricier one; new tiers are added to matching posts.
 

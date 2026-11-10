@@ -2,7 +2,7 @@
 import { onMounted, ref, type Ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Notification } from '@bzr/bazaar'
-import { bzr } from '@/bazaar'
+import { bzr, bzrNotifications } from '@/bazaar'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/lib/format'
 import AppIcon from './AppIcon.vue'
@@ -13,13 +13,13 @@ const menu: Ref<'' | 'account' | 'notifications'> = ref('')
 const notifications: Ref<Notification[]> = ref([])
 
 async function loadNotifications() {
-  notifications.value = (await bzr.notifications.list()).sort(
+  notifications.value = (await bzrNotifications.list()).sort(
     (a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime(),
   )
 }
 
 async function clearNotifications() {
-  await Promise.all(notifications.value.map((n) => bzr.notifications.hide(n.id)))
+  await Promise.all(notifications.value.map((n) => bzrNotifications.hide(n.id)))
   notifications.value = []
 }
 

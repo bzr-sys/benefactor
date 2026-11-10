@@ -1,4 +1,4 @@
-import { BazaarApp, type BazaarOptions } from '@bzr/bazaar'
+import { BazaarApp, type BazaarOptions, type NotificationsAPI } from '@bzr/bazaar'
 
 const config: BazaarOptions = {
   appId: import.meta.env.VITE_APP_ID || 'test',
@@ -20,3 +20,6 @@ if (import.meta.env.VITE_BAZAAR_URI) {
 }
 
 export const bzr = new BazaarApp(config)
+
+/** Private in the SDK since 1.11.0 (bzr-sys/bazaar#72) and untyped there, still served */
+export const bzrNotifications: NotificationsAPI = bzr['notifications']
