@@ -7,7 +7,7 @@ import {
   type Sale,
   type User,
 } from '@bzr/bazaar'
-import { bzr } from '@/bazaar'
+import { bzr, bzrNotifications } from '@/bazaar'
 import { ensureCreatorSetup, mine, POST_IMAGES_DIR, PUBLIC_DIR } from '@/lib/data'
 import { ACTIVE_STATUSES, listPages, loadTiers, type Tier } from '@/lib/posts'
 import { ACCENTS } from '@/lib/format'
@@ -181,7 +181,7 @@ export const useStudioStore = defineStore('studio', () => {
     const message = `${page.name} posted “${post.title}” on Benefactor`.slice(0, 250)
     const results = await Promise.allSettled(
       [...recipients].map((recipientId) =>
-        bzr.notifications.create({
+        bzrNotifications.create({
           recipientId,
           message,
           sendMessage: email ? SendNotification.ALWAYS : SendNotification.NEVER,

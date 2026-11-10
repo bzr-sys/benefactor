@@ -93,7 +93,8 @@ export async function ensureCreatorSetup() {
   const filePermissions = await bzr.permissions.list({ collectionName: '_files' })
   for (const filter of fileGrants) {
     const exists = filePermissions.some(
-      (p) => p.granteeType === GranteeType.ANY && JSON.stringify(p.filter) === JSON.stringify(filter),
+      (p) =>
+        p.granteeType === GranteeType.ANY && JSON.stringify(p.filter) === JSON.stringify(filter),
     )
     if (!exists) {
       await bzr.permissions.create({
