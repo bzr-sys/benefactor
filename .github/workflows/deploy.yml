@@ -16,7 +16,6 @@ jobs:
         env:
           # The app's ID from the Bazaar dashboard (repository variable)
           VITE_APP_ID: ${{ vars.BENEFACTOR_APP_ID }}
-          BASE_PATH: /${{ github.event.repository.name }}/
         run: |
           npm ci
           npm run build
